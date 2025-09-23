@@ -1,5 +1,4 @@
 import os
-import json
 from pathlib import Path
 
 import pytest
@@ -62,9 +61,15 @@ def test_sokoban_agent_rollout_and_logging(basic_config, tmp_path):
     row = agent.get_final_rollout_states()
     assert "metrics" in row and "history" in row
 
-    # Log to cache directory
-    out_file = cache_dir / "sokoban_agent_test_log.json"
+    # Log to cache directory as text
+    out_file = cache_dir / "sokoban_agent_test_log.txt"
     with out_file.open("w", encoding="utf-8") as f:
-        json.dump(row, f)
+        f.write("SokobanAgent Test Log\n")
+        f.write("======================\n")
+        f.write("metrics:\n")
+        f.write(str(row.get("metrics")))
+        f.write("\n---\n")
+        f.write("history:\n")
+        f.write(str(row.get("history")))
 
     assert out_file.exists() and out_file.stat().st_size > 0

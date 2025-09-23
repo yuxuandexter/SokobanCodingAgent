@@ -40,6 +40,9 @@ pre-commit
 gym_sokoban==0.0.6
 gymnasium[toy-text]>=1.0.0
 wandb
+litellm>=1.77.0
+google-auth>=2.0.0
+google-generativeai>=0.7.0
 
 # =============================================================================
 # DATA PROCESSING & UTILITIES

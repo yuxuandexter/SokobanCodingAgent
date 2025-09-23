@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 import pytest
@@ -41,10 +40,14 @@ def test_sokoban_env_step_and_logging(env_config):
         if done:
             break
 
-    # Log minimal info
-    log = {"last_obs": obs, "done": done, "info": info}
-    out_file = cache_dir / "sokoban_env_test_log.json"
+    # Log minimal info as text
+    out_file = cache_dir / "sokoban_env_test_log.txt"
     with out_file.open("w", encoding="utf-8") as f:
-        json.dump(log, f)
+        f.write("SokobanEnv Test Log\n")
+        f.write("====================\n")
+        f.write(f"done: {done}\n")
+        f.write(f"info: {info}\n")
+        f.write("last_obs:\n")
+        f.write(str(obs))
 
     assert out_file.exists() and out_file.stat().st_size > 0
