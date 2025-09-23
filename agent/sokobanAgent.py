@@ -49,6 +49,11 @@ class SokobanAgent(BaseAgent):
 
         # Store raw response for debugging
         self.raw_response_list.append(llm_raw_response)
+        # Print the full raw completion for visibility during tests/runs
+        try:
+            print(f"[Agent {self.agent_id}] Full LLM completion (raw):\n{llm_raw_response}")
+        except Exception:
+            pass
        
         self.cur_turn += 1
 
