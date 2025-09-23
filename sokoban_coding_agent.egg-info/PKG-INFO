@@ -1,3 +1,20 @@
+Metadata-Version: 2.4
+Name: sokoban-coding-agent
+Version: 0.1.0
+Summary: A lightweight, tool-calling coding agent to interact with a Sokoban environment.
+Author: SokobanCodingAgent Maintainers
+License: MIT
+Keywords: sokoban,gym,gymnasium,agent,reinforcement-learning
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: gymnasium>=1.0.0
+Requires-Dist: gym-sokoban==0.0.6
+Requires-Dist: numpy>=1.23
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: pytest>=7.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+
 # SokobanCodingAgent
 a lightweight, tool-calling coding agent that plans with ReAct and writes/executes code to solve classic Sokoban box-pushing puzzles.
 

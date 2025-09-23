@@ -1,0 +1,43 @@
+[build-system]
+requires = [
+  "setuptools>=68",
+  "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sokoban-coding-agent"
+version = "0.1.0"
+description = "A lightweight, tool-calling coding agent to interact with a Sokoban environment."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "SokobanCodingAgent Maintainers" }
+]
+keywords = ["sokoban", "gym", "gymnasium", "agent", "reinforcement-learning"]
+dependencies = [
+  "gymnasium>=1.0.0",
+  "gym-sokoban==0.0.6",
+  "numpy>=1.23",
+  "PyYAML>=6.0",
+  "pytest>=7.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0"
+]
+
+[tool.setuptools.packages.find]
+include = [
+  "agent*",
+  "env*"
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = [
+  "tests"
+]
+
