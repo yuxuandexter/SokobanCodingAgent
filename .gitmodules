@@ -1,0 +1,4 @@
+[submodule "third_party/R2E-Gym"]
+	path = third_party/R2E-Gym
+	url = https://github.com/R2E-Gym/R2E-Gym.git
+	branch = main
