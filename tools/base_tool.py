@@ -113,9 +113,7 @@ class ToolManager:
         group = self._tool_to_group.get(name)
         if not group:
             raise ValueError(f"Unknown tool: {name}")
-        # Route calls, passing editor state path when needed
-        if name == "file_editor":
-            return group.execute(name, arguments, editor_state_path=self._editor_state_path)
+        # Uniform dispatch; tools manage their own state if needed
         return group.execute(name, arguments)
  
 __all__ = [
