@@ -2,3 +2,7 @@
 	path = third_party/R2E-Gym
 	url = https://github.com/R2E-Gym/R2E-Gym.git
 	branch = main
+[submodule "third_party/SkyRL"]
+	path = third_party/SkyRL
+	url = https://github.com/NovaSky-AI/SkyRL.git
+	branch = main
