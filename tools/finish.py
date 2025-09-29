@@ -1,3 +1,20 @@
+"""
+Tool: finish (group: finish)
+
+Description:
+- Signal completion and optionally return a final result string.
+
+JSON schema (parameters):
+{
+  "type": "object",
+  "properties": {
+    "command": {"type": "string", "enum": ["submit"]},
+    "result": {"type": "string"}
+  },
+  "required": ["command"]
+}
+"""
+
 from __future__ import annotations
 
 from typing import Any, Dict

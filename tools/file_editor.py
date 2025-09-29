@@ -1,3 +1,26 @@
+"""
+Tool: file_editor (group: editor)
+
+Description:
+- View or edit files: view/create/str_replace/insert/undo_edit with snippet outputs and simple validation.
+- Maintains simple per-path edit history persisted at /tmp/sokoban_editor_state.json for undo.
+
+JSON schema (parameters):
+{
+  "type": "object",
+  "properties": {
+    "command": {"type": "string", "enum": ["view", "create", "str_replace", "insert", "undo_edit"]},
+    "path": {"type": "string", "description": "Absolute or relative file/directory path."},
+    "file_text": {"type": "string", "description": "Required for create."},
+    "old_str": {"type": "string", "description": "Required for str_replace (must match uniquely)."},
+    "new_str": {"type": "string", "description": "Replacement for str_replace or inserted text for insert."},
+    "insert_line": {"type": "integer", "description": "For insert: new_str inserted AFTER this 0-based line index."},
+    "view_range": {"type": "array", "items": {"type": "integer"}, "description": "[start, end]; end=-1 for EOF; 1-based indices."}
+  },
+  "required": ["command", "path"]
+}
+"""
+
 from __future__ import annotations
 
 import json

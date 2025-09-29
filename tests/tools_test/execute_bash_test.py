@@ -34,3 +34,26 @@ def test_execute_bash_nonzero_exit():
         f.write("Case: nonzero-exit\n")
         f.write(res["exit_code"] + "\n")
 
+
+def test_execute_bash_empty_command():
+    tm = build_default_tool_manager()
+    res = tm.execute("execute_bash", {"cmd": "   "})
+    assert res["exit_code"] == "Error: Exit code 2"
+    assert "Empty command." in res["output"]
+
+
+def test_execute_bash_stderr_but_success():
+    tm = build_default_tool_manager()
+    # Writes to stderr but exits with 0; output should include stderr and exit_code should be "0"
+    res = tm.execute("execute_bash", {"cmd": "echo warn 1>&2; true"})
+    assert res["exit_code"] == "0"
+    assert "warn" in res["output"]
+
+
+def test_execute_bash_timeout():
+    tm = build_default_tool_manager()
+    # Force a very small timeout to trigger timeout path
+    res = tm.execute("execute_bash", {"cmd": "sleep 1", "timeout": 0})
+    assert res["exit_code"] == "-1"
+    assert "too long" in res["output"]
+

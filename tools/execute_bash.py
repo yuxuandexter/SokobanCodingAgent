@@ -1,3 +1,20 @@
+"""
+Tool: execute_bash (group: bash)
+
+Description:
+- Execute a bash command in the local shell with a timeout.
+
+JSON schema (parameters):
+{
+  "type": "object",
+  "properties": {
+    "cmd": {"type": "string", "description": "The shell command to execute."},
+    "timeout": {"type": "integer", "description": "Timeout seconds (default 120)."}
+  },
+  "required": ["cmd"]
+}
+"""
+
 from __future__ import annotations
 
 from typing import Any, Dict

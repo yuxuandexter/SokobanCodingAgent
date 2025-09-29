@@ -40,3 +40,35 @@ def test_search_in_directory(tmp_path: Path):
         f.write("Case: directory\n")
         f.write(res["output"] + "\n")
 
+
+def test_search_file_no_matches(tmp_path: Path):
+    p = tmp_path / "z.py"
+    p.write_text("hello\nworld\n", encoding="utf-8")
+    tm = build_default_tool_manager()
+    res = tm.execute("search", {"search_term": "alpha", "path": str(p)})
+    assert res["exit_code"] == "0"
+    assert "No matches" in res["output"]
+
+
+def test_search_directory_non_python_and_limits(tmp_path: Path):
+    tm = build_default_tool_manager()
+    # create many files, ensure python_only flag filters non .py by default and max_files triggers summary
+    for i in range(5):
+        (tmp_path / f"f{i}.py").write_text("alpha\n", encoding="utf-8")
+    for i in range(3):
+        (tmp_path / f"g{i}.txt").write_text("alpha\n", encoding="utf-8")
+    res_default = tm.execute("search", {"search_term": "alpha", "path": str(tmp_path)})
+    assert res_default["exit_code"] == "0"
+    assert ".txt" not in res_default["output"]
+    # allow non-python
+    res_all = tm.execute("search", {"search_term": "alpha", "path": str(tmp_path), "python_only": False})
+    assert res_all["exit_code"] == "0"
+    assert ".txt" in res_all["output"]
+
+
+def test_search_path_not_found(tmp_path: Path):
+    tm = build_default_tool_manager()
+    res = tm.execute("search", {"search_term": "alpha", "path": str(tmp_path / "missing")})
+    assert res["exit_code"] == "-1"
+    assert "Path not found" in res["output"]
+

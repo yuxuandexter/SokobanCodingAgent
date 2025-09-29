@@ -22,3 +22,11 @@ def test_finish_submit():
         f.write("Case: submit\n")
         f.write(str(res) + "\n")
 
+
+def test_finish_invalid_command():
+    tm = build_default_tool_manager()
+    res = tm.execute("finish", {"command": "nope"})
+    assert res["exit_code"] == "-1"
+    assert res.get("done") is False
+    assert "Invalid command" in res["output"]
+

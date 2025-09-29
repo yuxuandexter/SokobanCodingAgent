@@ -1,3 +1,22 @@
+"""
+Tool: search (group: search)
+
+Description:
+- Search for a term in a file or directory. Directory mode summarizes matches per file; file mode shows line numbers.
+
+JSON schema (parameters):
+{
+  "type": "object",
+  "properties": {
+    "search_term": {"type": "string", "description": "Term to search for."},
+    "path": {"type": "string", "description": "File or directory to search (default .)."},
+    "python_only": {"type": "boolean", "description": "If directory, only .py files (default true)."},
+    "max_files": {"type": "integer", "description": "Max files to report for directories (default 100)."}
+  },
+  "required": ["search_term"]
+}
+"""
+
 from __future__ import annotations
 
 import os
