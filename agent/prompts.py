@@ -112,3 +112,22 @@ Reminder:
 - Only call one function at a time
 - VERY IMPORTANT: Each response must include both reasoning (as natural text) and a function call (in the above format) to solve the task.
 """
+
+
+prompt = """
+You are solving a Sokoban puzzle.
+
+Protocol (function-call format):
+- On each turn, reply with exactly one function call using the specified markup.
+- Use tools (e.g., search, file_editor, execute_bash) to analyze and plan.
+- Do not call finish until you have the final action sequence.
+- When you have the solution, call <function=finish> with:
+  - <parameter=command>submit</parameter>
+  - <parameter=result> on the first line: the action sequence using the exact action names and separator provided below (e.g., Right || Right || Up). Do not include a trailing separator.
+- Optional: After the first line, you may append metadata following a line with --- in the same result parameter.
+
+Constraints and guidance:
+- Prefer safe pushes toward targets; avoid deadlocks (e.g., corners off-target). Reposition before risky pushes.
+
+ The initial state, symbol meanings, available actions, and separator will be provided below; follow them exactly.
+"""
