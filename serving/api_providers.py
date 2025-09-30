@@ -1,4 +1,6 @@
 import os
+import json
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 try:
@@ -55,6 +57,9 @@ def chat_completion(
     kwargs: Dict[str, Any] = dict(model=model, messages=messages, temperature=temperature)
     if max_tokens is not None:
         kwargs["max_tokens"] = max_tokens
+    else:
+        # Provide a generous default unless caller sets it explicitly
+        kwargs["max_tokens"] = 10000
 
     # Provider-specific defaults
     if provider_lower == "gemini":
@@ -93,7 +98,34 @@ def chat_completion(
 
     try:
         resp = completion(**kwargs)
-        return resp["choices"][0]["message"]["content"]
+        choice = resp.get("choices", [{}])[0]
+        message = choice.get("message", {})
+        content = message.get("content")
+
+        # If function/tool calls present, convert to our XML-like function blocks
+        tool_calls = message.get("tool_calls") or []
+        if tool_calls:
+            blocks: List[str] = []
+            for tc in tool_calls:
+                fn = ((tc or {}).get("function") or {})
+                name = fn.get("name", "")
+                args_raw = fn.get("arguments", "{}")
+                try:
+                    args_dict = json.loads(args_raw) if isinstance(args_raw, str) else (args_raw or {})
+                except Exception:
+                    args_dict = {"_raw": str(args_raw)}
+                # Build XML-like block
+                lines = [f"<function={name}>"]
+                if isinstance(args_dict, dict):
+                    for k, v in args_dict.items():
+                        val = v if isinstance(v, str) else json.dumps(v)
+                        lines.append(f"<parameter={k}>{val}</parameter>")
+                lines.append("</function>")
+                blocks.append("\n".join(lines))
+            return "\n".join(blocks)
+
+        # Otherwise, return plain content (may be empty string)
+        return content or ""
     except Exception as e:
         raise LLMProviderError(str(e))
 

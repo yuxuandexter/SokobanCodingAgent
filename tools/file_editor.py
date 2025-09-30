@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .base_tool import ToolGroup, tool
+from .tool_utils import get_workspace_root
 
 
 class FileEditorTools(ToolGroup):
@@ -86,7 +87,10 @@ class FileEditorTools(ToolGroup):
         insert_line_raw: Optional[Any] = args.get("insert_line")
         view_range: Optional[List[int]] = args.get("view_range")
 
-        p = Path(path_str).resolve()
+        # Resolve paths under the configured workspace by default (unless absolute)
+        workspace_root = get_workspace_root()
+        raw_p = Path(path_str)
+        p = (raw_p if raw_p.is_absolute() else (workspace_root / raw_p)).resolve()
 
         history = self._load_history()
 

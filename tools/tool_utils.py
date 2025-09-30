@@ -6,6 +6,19 @@ from pathlib import Path
 from typing import List, Tuple
 
 
+# Workspace root resolution (used to scope tool executions under repo workspace)
+try:
+    from agent.config import workspace_absolute_path as _WORKSPACE_ABS
+except Exception:
+    # Fallback default if config import fails
+    _WORKSPACE_ABS = "/workspace/SokobanCodingAgent/workspace"
+
+
+def get_workspace_root() -> Path:
+    """Return the absolute workspace root directory as a Path."""
+    return Path(_WORKSPACE_ABS).resolve()
+
+
 def safe_run_shell(cmd: str, timeout: int = 120) -> Tuple[str, str]:
     """
     Execute a shell command safely with timeout.
@@ -15,6 +28,9 @@ def safe_run_shell(cmd: str, timeout: int = 120) -> Tuple[str, str]:
         return "Empty command.", "Error: Exit code 2"
 
     try:
+        # Always execute under the configured workspace root
+        workspace_root = get_workspace_root()
+        cmd = f'cd "{workspace_root}" && {cmd}'
         proc = subprocess.run(
             ["/bin/bash", "-lc", cmd],
             capture_output=True,
