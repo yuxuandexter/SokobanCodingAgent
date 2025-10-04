@@ -100,16 +100,23 @@ def main():
 
     # Print succinct initial game state and config helpers
     print("\n=== Initial Game State ===")
+    append_log("\n=== Initial Game State ===")
     print(env_out.state)
+    append_log(str(env_out.state))
     print("Symbols:", symbols_txt)
+    append_log(f"Symbols: {symbols_txt}")
     print("Actions:", actions_txt)
+    append_log(f"Actions: {actions_txt}")
     print("Separator:", agent.action_separator)
+    append_log(f"Separator: {agent.action_separator}")
     print("Max actions total:", agent.max_actions_all_turns)
+    append_log(f"Max actions total: {agent.max_actions_all_turns}")
     print("Workspace root:", WORKSPACE_ROOT)
+    append_log(f"Workspace root: {WORKSPACE_ROOT}")
 
     # Do not print or log initial prompts; we only log new feedback per step
 
-    MAX_ITER = 10
+    MAX_ITER = 20
     provider = "openai"  # or "gemini"
     model = "gpt-5"     # explicitly use GPT-4o for OpenAI
     print(f"Model provider={provider} model={model or '(default)'}")
@@ -133,6 +140,7 @@ def main():
     final_env_out = None
     for step in range(MAX_ITER):
         print(f"\n=== Tool Step {step+1} ===")
+        append_log(f"\n=== Tool Step {step+1} ===")
         # Skip printing/logging full prompts; keep logs focused on feedback
 
         # Query the model
@@ -166,6 +174,7 @@ def main():
         for fn in tool_names:
             append_log(f"=== Tool call step {step+1}: {fn} ===")
             print(f"[ToolCall] step {step+1}: {fn}")
+            append_log(f"[ToolCall] step {step+1}: {fn}")
 
         # Remember message length to capture newly added feedback after tool execution
         before_len = len(agent.get_messages())
@@ -175,6 +184,7 @@ def main():
         if finished:
             final_env_out = env_out
             print("\nExecuted final actions in environment.")
+            append_log("\nExecuted final actions in environment.")
             append_log(f"=== User messages before finish step {step+1} ===")
             append_log(_user_messages_repr(agent.get_messages()))
             if final_env_out is not None:
@@ -186,6 +196,7 @@ def main():
         if llm_response and ("||" in llm_response) and ("<function=" not in llm_response) and ("<answer>" not in llm_response):
             final_env_out = agent.get_env_outputs(llm_response)
             print("\nExecuted actions from plain string.")
+            append_log("\nExecuted actions from plain string.")
             append_log(f"=== Executed plain actions at step {step+1} ===")
             append_log(llm_response)
             break
@@ -203,6 +214,7 @@ def main():
             for idx, fb in enumerate(new_user_feedback):
                 name = tool_names_no_finish[idx] if idx < len(tool_names_no_finish) else "?"
                 print(f"\n[ToolFeedback] step {step+1} tool={name}\n{fb}")
+                append_log(f"\n[ToolFeedback] step {step+1} tool={name}\n{fb}")
                 append_log(f"=== Feedback step {step+1}: {name} ===")
                 append_log(fb)
 
@@ -210,18 +222,37 @@ def main():
 
     if final_env_out is None:
         print("\nNo finish received within iteration cap.")
+        append_log("\nNo finish received within iteration cap.")
     else:
         print("\nFinal Observation:\n", final_env_out.state)
+        append_log("\nFinal Observation:")
+        append_log(str(final_env_out.state))
         print("Reward:", final_env_out.reward)
+        append_log(f"Reward: {final_env_out.reward}")
         print("Info:", final_env_out.info)
+        append_log(f"Info: {final_env_out.info}")
         append_log("=== Final observation ===")
         append_log(str(final_env_out.state))
 
     # Show brief rollout metrics
     row = agent.get_final_rollout_states()
     print("\nMetrics:")
-    pprint(row.get("metrics", {}))
+    append_log("\nMetrics:")
+    metrics_obj = row.get("metrics", {})
+    pprint(metrics_obj)
+    try:
+        append_log(str(metrics_obj))
+    except Exception:
+        append_log("<metrics not serializable>")
     print("\nHistory length:", len(row.get("history", [])))
+    append_log(f"\nHistory length: {len(row.get('history', []))}")
+
+    # Print and log full LLM interaction messages
+    print("\nFull LLM Messages:")
+    append_log("\nFull LLM Messages:")
+    msgs = agent.get_messages()
+    print(repr(msgs))
+    append_log(str(msgs))
 
 
 if __name__ == "__main__":

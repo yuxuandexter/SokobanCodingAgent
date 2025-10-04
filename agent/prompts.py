@@ -130,17 +130,20 @@ Protocol (function-call format):
 
 Constraints and guidance:
 - Prefer safe pushes toward targets; avoid deadlocks (e.g., corners off-target). Reposition before risky pushes.
+- You have at most 120s per execute_bash invocation; optimize/refine your solver so each command completes within this limit.
+- Frequently refine your solver and re-run tests to validate progress and catch regressions early.
 
  The initial state, symbol meanings, available actions, and separator will be provided below; follow them exactly.
 
 Code-writing workflow (strongly recommended):
 - If the solution is non-trivial, write a small solver program to compute the action sequence from the given state.
-- Create files in the current working directory using file_editor (e.g., solver.py, utils.py, README.md).
+- Create files in the current working directory using file_editor (e.g., solver.py, test.py, utils.py, README.md).
 - Suggested steps:
   1) file_editor: create solver.py that parses the grid (from stdin or an embedded constant) and runs a search (e.g., BFS/IDA* with push rules) to produce a minimal action sequence using the exact action names.
   2) execute_bash: run python solver.py and capture stdout.
   3) Post-process stdout if needed to ensure the first line is the action sequence with the exact separator.
-  4) finish: submit the action sequence via <parameter=result> first line.
+  4) file_editor: write a test file to validate the proposed trajectory (e.g., simulate moves and assert all boxes end on targets); run it and ensure it passes.
+  5) finish: submit the action sequence via <parameter=result> first line.
 - You may also write a quick test to verify the puzzle is solved (e.g., check all boxes are on targets). If verification fails, iteratively refine the code/files and rerun until it passes.
 - Keep actions named exactly as provided (e.g., Up, Down, Left, Right) and joined by the configured separator only.
 - Do NOT try to execute Sokoban moves as shell commands (e.g., "Up"); use code to compute, then submit via finish.

@@ -38,3 +38,11 @@ pytest -q
 ```
 
 Test runs will write simple logs under a root-level `cache` directory.
+
+### Development Track
+
+[O] test sokoban coding agent with gpt api
+[ ] refine sokoban agent with tool calling
+    [ ] coding agent trajectory support
+    [ ] multi threads support 
+
