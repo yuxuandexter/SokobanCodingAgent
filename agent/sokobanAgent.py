@@ -275,51 +275,43 @@ class SokobanAgent(BaseAgent):
             info=info
         )
 
-    def iterate_function_calls(self, llm_response: str, max_tool_calls: int = 20) -> Tuple[bool, Optional[EnvOutput]]:
-        """Execute non-finish tool calls in an LLM response. If a finish call is present,
-        execute final actions via get_env_outputs and return (True, EnvOutput).
-        Otherwise execute tools, append feedback to messages, and return (False, None).
+    def execute_tool_call(self, llm_response: str) -> Tuple[bool, Optional[EnvOutput]]:
+        """Process exactly one tool call from the given LLM response.
+
+        - If the call is <function=finish>, execute final actions and return (True, EnvOutput).
+        - Otherwise, execute one tool (if available), append feedback, and return (False, None).
+        - If no function block is present, return (False, None).
         """
         function_blocks = self._parse_function_blocks(llm_response)
         if not function_blocks:
-            # Nothing to do
             return False, None
 
-        calls = 0
-        for block in function_blocks:
-            if calls >= max_tool_calls:
-                break
-            calls += 1
-            fn_name, params = self._parse_function_call(block)
-            if not fn_name:
-                continue
+        block = function_blocks[0]
+        fn_name, params = self._parse_function_call(block)
+        if not fn_name:
+            return False, None
 
-            # Log assistant call
-            self.messages.append({"role": "assistant", "content": block})
-            self._cache_log(f"[tool] call {fn_name} with params_keys={list(params.keys())}")
+        # Log assistant call
+        self.messages.append({"role": "assistant", "content": block})
+        self._cache_log(f"[tool] single call {fn_name} with params_keys={list(params.keys())}")
 
-            if fn_name.lower() in {"finish", "submit"}:
-                # Extract the action sequence from result and execute via get_env_outputs
-                result_text = params.get("result", "")
-                action_line = result_text.split("\n", 1)[0].split("---", 1)[0].strip()
-                self._cache_log(f"[tool] finish with actions='{action_line}'")
-                env_out = self.get_env_outputs(action_line)
-                return True, env_out
+        if fn_name.lower() in {"finish", "submit"}:
+            result_text = params.get("result", "")
+            action_line = result_text.split("\n", 1)[0].split("---", 1)[0].strip()
+            self._cache_log(f"[tool] finish with actions='{action_line}'")
+            env_out = self.get_env_outputs(action_line)
+            return True, env_out
 
-            # Execute regular tool
-            tool_out: Dict[str, Any] = {"output": "", "exit_code": "0"}
-            try:
-                if getattr(self, "tool_manager", None) is not None:
-                    tool_out = self.tool_manager.execute(fn_name, params)
-                else:
-                    tool_out = {"output": f"Tool manager unavailable for {fn_name}.", "exit_code": "-1"}
-            except Exception as e:
-                tool_out = {"output": f"Error executing tool {fn_name}: {e}", "exit_code": "-1"}
+        tool_out: Dict[str, Any] = {"output": "", "exit_code": "0"}
+        try:
+            if getattr(self, "tool_manager", None) is not None:
+                tool_out = self.tool_manager.execute(fn_name, params)
+            else:
+                tool_out = {"output": f"Tool manager unavailable for {fn_name}.", "exit_code": "-1"}
+        except Exception as e:
+            tool_out = {"output": f"Error executing tool {fn_name}: {e}", "exit_code": "-1"}
 
-            feedback = self._format_tool_observation(fn_name, tool_out)
-            self.messages.append({"role": "user", "content": feedback})
-            self._cache_log(f"[tool] feedback {fn_name} exit={tool_out.get('exit_code')} bytes={len(str(tool_out.get('output','')))}")
-
-        # If we iterated tools but did not finish, mark a small penalty
-        self.penalty += self.format_penalty
+        feedback = self._format_tool_observation(fn_name, tool_out)
+        self.messages.append({"role": "user", "content": feedback})
+        self._cache_log(f"[tool] feedback {fn_name} exit={tool_out.get('exit_code')} bytes={len(str(tool_out.get('output','')))}")
         return False, None

@@ -116,7 +116,8 @@ def main():
 
     # Do not print or log initial prompts; we only log new feedback per step
 
-    MAX_ITER = 20
+    MAX_TURNS = getattr(agent, "max_turns", 1)
+    MAX_STEPS = agent.agent_config.get("max_steps", 10)
     provider = "openai"  # or "gemini"
     model = "gpt-5"     # explicitly use GPT-4o for OpenAI
     print(f"Model provider={provider} model={model or '(default)'}")
@@ -138,87 +139,87 @@ def main():
     tool_schemas = tm.get_schemas() if tm is not None else None
 
     final_env_out = None
-    for step in range(MAX_ITER):
-        print(f"\n=== Tool Step {step+1} ===")
-        append_log(f"\n=== Tool Step {step+1} ===")
-        # Skip printing/logging full prompts; keep logs focused on feedback
+    finished = False
+    for turn_idx in range(MAX_TURNS):
+        step_calls = 0
+        while step_calls < MAX_STEPS and not finished:
+            step_calls += 1
+            print(f"\n=== Tool Step {turn_idx+1}.{step_calls} ===")
+            append_log(f"\n=== Tool Step {turn_idx+1}.{step_calls} ===")
 
-        # Query the model
-        extra_args = {"tools": tool_schemas} if tool_schemas else None
-        llm_response_raw = chat_completion(
-            messages=agent.messages,
-            provider=provider,
-            model=model,
-            temperature=1,
-            extra_args=extra_args,
-        )
-        if isinstance(llm_response_raw, str):
-            llm_response = llm_response_raw
-        elif llm_response_raw is None:
-            llm_response = ""
-        else:
-            llm_response = str(llm_response_raw)
+            # Query the model for the next tool call
+            extra_args = {"tools": tool_schemas} if tool_schemas else None
+            llm_response_raw = chat_completion(
+                messages=agent.messages,
+                provider=provider,
+                model=model,
+                temperature=1,
+                extra_args=extra_args,
+            )
+            if isinstance(llm_response_raw, str):
+                llm_response = llm_response_raw
+            elif llm_response_raw is None:
+                llm_response = ""
+            else:
+                llm_response = str(llm_response_raw)
 
-        if not llm_response:
-            print("\nLLM returned empty response; continuing.")
-            append_log(f"=== LLM returned empty response at step {step+1} ===")
+            if not llm_response:
+                print("\nLLM returned empty response; continuing.")
+                append_log(f"=== LLM returned empty response at step {turn_idx+1}.{step_calls} ===")
+                continue
 
-        # Parse declared tool calls (names and parameter keys) for logging
-        tool_names: list[str] = []
-        try:
-            tool_names = re.findall(r"<function\s*=\s*([^>]+)>", llm_response)
-        except Exception:
-            tool_names = []
-        # Exclude finish/submit from the tool feedback mapping
-        tool_names_no_finish = [n for n in tool_names if n.lower() not in {"finish", "submit"}]
-        for fn in tool_names:
-            append_log(f"=== Tool call step {step+1}: {fn} ===")
-            print(f"[ToolCall] step {step+1}: {fn}")
-            append_log(f"[ToolCall] step {step+1}: {fn}")
+            # Parse declared tool calls (names and parameter keys) for logging
+            tool_names: list[str] = []
+            try:
+                tool_names = re.findall(r"<function\s*=\s*([^>]+)>", llm_response)
+            except Exception:
+                tool_names = []
+            tool_names_no_finish = [n for n in tool_names if n.lower() not in {"finish", "submit"}]
+            for fn in tool_names:
+                append_log(f"=== Tool call step {turn_idx+1}.{step_calls}: {fn} ===")
+                print(f"[ToolCall] step {turn_idx+1}.{step_calls}: {fn}")
+                append_log(f"[ToolCall] step {turn_idx+1}.{step_calls}: {fn}")
 
-        # Remember message length to capture newly added feedback after tool execution
-        before_len = len(agent.get_messages())
+            before_len = len(agent.get_messages())
 
-        # Execute tool calls iteratively; if finish encountered it will run env
-        finished, env_out = agent.iterate_function_calls(llm_response)
-        if finished:
-            final_env_out = env_out
-            print("\nExecuted final actions in environment.")
-            append_log("\nExecuted final actions in environment.")
-            append_log(f"=== User messages before finish step {step+1} ===")
-            append_log(_user_messages_repr(agent.get_messages()))
-            if final_env_out is not None:
-                append_log("=== Final observation ===")
-                append_log(str(final_env_out.state))
-            break
+            # Execute a single tool call; if finished, break
+            finished, env_out = agent.execute_tool_call(llm_response)
+            if finished:
+                final_env_out = env_out
+                print("\nExecuted final actions in environment.")
+                append_log("\nExecuted final actions in environment.")
+                append_log(f"=== User messages before finish step {turn_idx+1}.{step_calls} ===")
+                append_log(_user_messages_repr(agent.get_messages()))
+                if final_env_out is not None:
+                    append_log("=== Final observation ===")
+                    append_log(str(final_env_out.state))
+                break
 
-        # If the model replied with a plain action string, execute directly
-        if llm_response and ("||" in llm_response) and ("<function=" not in llm_response) and ("<answer>" not in llm_response):
-            final_env_out = agent.get_env_outputs(llm_response)
-            print("\nExecuted actions from plain string.")
-            append_log("\nExecuted actions from plain string.")
-            append_log(f"=== Executed plain actions at step {step+1} ===")
-            append_log(llm_response)
-            break
+            # If the model replied with a plain action string, execute directly
+            if llm_response and ("||" in llm_response) and ("<function=" not in llm_response) and ("<answer>" not in llm_response):
+                final_env_out = agent.get_env_outputs(llm_response)
+                print("\nExecuted actions from plain string.")
+                append_log("\nExecuted actions from plain string.")
+                append_log(f"=== Executed plain actions at step {turn_idx+1}.{step_calls} ===")
+                append_log(llm_response)
+                finished = True
+                break
 
-        # Collect newly added user feedback messages and map to tool calls (best-effort by order)
-        new_msgs = agent.get_messages()[before_len:]
-        new_user_feedback = [m.get("content", "") for m in new_msgs if isinstance(m, dict) and m.get("role") == "user"]
-        for idx, fn in enumerate(tool_names_no_finish):
-            if idx < len(new_user_feedback):
-                append_log(f"=== Feedback step {step+1}: {fn} ===")
-                append_log(new_user_feedback[idx])
+            # Collect newly added user feedback messages
+            new_msgs = agent.get_messages()[before_len:]
+            new_user_feedback = [m.get("content", "") for m in new_msgs if isinstance(m, dict) and m.get("role") == "user"]
+            for idx, fn in enumerate(tool_names_no_finish):
+                if idx < len(new_user_feedback):
+                    append_log(f"=== Feedback step {turn_idx+1}.{step_calls}: {fn} ===")
+                    append_log(new_user_feedback[idx])
 
-        # Print and log tool feedback (no full prompt history); fall back if name mapping unavailable
-        if new_user_feedback:
-            for idx, fb in enumerate(new_user_feedback):
-                name = tool_names_no_finish[idx] if idx < len(tool_names_no_finish) else "?"
-                print(f"\n[ToolFeedback] step {step+1} tool={name}\n{fb}")
-                append_log(f"\n[ToolFeedback] step {step+1} tool={name}\n{fb}")
-                append_log(f"=== Feedback step {step+1}: {name} ===")
-                append_log(fb)
-
-        # Do not append any reminder; keep loop output minimal and focused on tools
+            if new_user_feedback:
+                for idx, fb in enumerate(new_user_feedback):
+                    name = tool_names_no_finish[idx] if idx < len(tool_names_no_finish) else "?"
+                    print(f"\n[ToolFeedback] step {turn_idx+1}.{step_calls} tool={name}\n{fb}")
+                    append_log(f"\n[ToolFeedback] step {turn_idx+1}.{step_calls} tool={name}\n{fb}")
+                    append_log(f"=== Feedback step {turn_idx+1}.{step_calls}: {name} ===")
+                    append_log(fb)
 
     if final_env_out is None:
         print("\nNo finish received within iteration cap.")
